@@ -1,0 +1,35 @@
+version: '1.0'
+
+name: Multi-Tenant GenAI Platform Submission
+
+environment:
+  docker_compose: docker-compose.yml
+
+build:
+  steps:
+    - name: Build Docker Containers
+      command: docker-compose build
+
+verification:
+  steps:
+    - name: Start Services
+      command: docker-compose up -d
+    
+    - name: Wait for Healthchecks
+      command: sleep 10 # Simple wait, or use a wait-for-it script
+
+    - name: Check Service Health
+      commands:
+        - curl -f http://localhost:8000/health
+        - curl -f http://localhost:8001/health
+        - curl -f http://localhost:8002/health
+        - curl -f http://localhost:8003/health
+        - curl -f http://localhost:8004/health
+        - curl -f http://localhost:8005/health
+        - curl -f http://localhost:8006/health
+
+    - name: Run Backend Syntax Verification
+      command: python -m py_compile services/gateway/main.py services/auth/main.py
+
+    - name: Build Frontend
+      command: cd apps/web && npm install && npm run build

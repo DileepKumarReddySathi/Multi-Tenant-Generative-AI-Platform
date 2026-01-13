@@ -10,6 +10,12 @@ A production-grade, multi-tenant platform for Generative AI applications using R
 - **Infrastructure**: Docker, Redis, MinIO
 - **Observability**: Prometheus, Grafana
 
+## Documentation
+
+- [Architecture Overview](ARCHITECTURE.md) - Deep dive into system design and security.
+- [Walkthrough](walkthrough.md) - Step-by-step guide.
+- [Submission Config](submission.yml) - Automated testing configuration.
+
 ## Getting Started
 
 ### Prerequisites
