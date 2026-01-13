@@ -20,7 +20,7 @@ A production-grade, multi-tenant platform for Generative AI applications using R
 
 ### Prerequisites
 - Docker & Docker Compose
-- Node.js (v18+)
+- Node.js (v20+)
 
 ### 1. Start Infrastructure & Microservices
 
