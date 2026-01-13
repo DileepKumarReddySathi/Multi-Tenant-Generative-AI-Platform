@@ -8,12 +8,12 @@ environment:
 build:
   steps:
     - name: Build Docker Containers
-      command: docker-compose build
+      command: docker compose build
 
 verification:
   steps:
     - name: Start Services
-      command: docker-compose up -d
+      command: docker compose up -d
     
     - name: Wait for Healthchecks
       command: sleep 10 # Simple wait, or use a wait-for-it script
