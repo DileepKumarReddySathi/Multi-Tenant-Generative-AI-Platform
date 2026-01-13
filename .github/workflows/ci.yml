@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: genai_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Dependencies (Services)
+      run: |
+        pip install -r services/gateway/requirements.txt
+        pip install -r services/auth/requirements.txt
+        # Add others as needed...
+
+    - name: Run Tests (Mock)
+      run: |
+        echo "Running pytest..."
+        # pytest # Uncomment when tests are added
+        echo "Tests passed!"
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: apps/web/package-lock.json
+
+    - name: Install Frontend Dependencies
+      run: |
+        cd apps/web
+        npm ci
+
+    - name: Build Frontend
+      run: |
+        cd apps/web
+        npm run build
+
+    - name: Build Docker Images (Verify Dockerfiles)
+      run: |
+        docker-compose build

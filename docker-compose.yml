@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  # Database & Vector Store
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: genai_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: genai_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - genai_net
+
+  # Cache & Message Queue
+  redis:
+    image: redis:alpine
+    container_name: genai_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - genai_net
+
+  # Object Storage (S3 Compatible)
+  minio:
+    image: minio/minio
+    container_name: genai_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - genai_net
+
+  # Email Mocking for Auth/Notifications
+  mailpit:
+    image: axllent/mailpit
+    container_name: genai_mailpit
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # UI
+    networks:
+      - genai_net
+
+  # --- Microservices ---
+  gateway:
+    build: ./services/gateway
+    container_name: genai_gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+    environment:
+      AUTH_SERVICE_URL: "http://auth-service:8000"
+      RAG_SERVICE_URL: "http://rag-service:8000"
+    networks:
+      - genai_net
+
+  auth-service:
+    build: ./services/auth
+    container_name: genai_auth
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: "postgresql://admin:password@postgres:5432/genai_platform"
+    depends_on:
+      - postgres
+    networks:
+      - genai_net
+
+  rag-service:
+    build: ./services/rag
+    container_name: genai_rag
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: "postgresql://admin:password@postgres:5432/genai_platform"
+    depends_on:
+      - postgres
+    networks:
+      - genai_net
+
+  agent-service:
+    build: ./services/agent
+    container_name: genai_agent
+    ports:
+      - "8003:8000"
+    environment:
+      RAG_SERVICE_URL: "http://rag-service:8000"
+    networks:
+      - genai_net
+
+  multimodal-service:
+    build: ./services/multimodal
+    container_name: genai_multimodal
+    ports:
+      - "8004:8000"
+    networks:
+      - genai_net
+
+  billing-service:
+    build: ./services/billing
+    container_name: genai_billing
+    ports:
+      - "8005:8000"
+    networks:
+      - genai_net
+
+  fine-tuning-service:
+    build: ./services/fine-tuning
+    container_name: genai_fine_tuning
+    ports:
+      - "8006:8000"
+    networks:
+      - genai_net
+
+  # --- Observability ---
+  prometheus:
+    image: prom/prometheus
+    container_name: genai_prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - genai_net
+
+  grafana:
+    image: grafana/grafana
+    container_name: genai_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - genai_net
+
+networks:
+  genai_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
